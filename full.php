@@ -7,87 +7,29 @@
 ###############################################
 
 ### Costanti modificabili
-define('FILE_IMAGE_R_URL', 'http://192.168.1.253:8080/joomla');
-define('JOS_VM_CATEGORY_CATEGORY_FLYPAGE', 'str_flypage.tpl'); // flypage per le categorie
+define('FILE_IMAGE_R_URL', 'http://192.168.1.253:8080/virtuemart');
+define('JOS_VM_CATEGORY_CATEGORY_FLYPAGE', ''); // flypage per le categorie
 define('JOS_VM_CATEGORY_PRODUCTS_PER_ROW', 5); // numero di righe per le categorie
-define('JOS_VM_CATEGORY_CATEGORY_BROWSEPAGE','str_browse_1'); // browsepage per le categorie
+define('JOS_VM_CATEGORY_CATEGORY_BROWSEPAGE',''); // browsepage per le categorie
+
+$mysqli = new mysqli('localhost', 'root', 'antico', 'virtuemart'); //host, username, psw, db
 
 ### Fine variabili - non modificare da qui in poi ###
-
-$mysqli = new mysqli('localhost', 'root', 'antico', 'joomla');
-
-$create = "CREATE TABLE IF NOT EXISTS joomla.jos_vm_product_type_1 (
-  `product_id` int(11) NOT NULL,
-  `Sesso` text,
-  `Stagione` varchar(255) default NULL,
-  `Categoria` varchar(255) default NULL,
-  `SottoCategoria` varchar(255) default NULL,
-  `Designer` text,
-  PRIMARY KEY  (`product_id`),
-  KEY `idx_product_type_1_Stagione` (`Stagione`),
-  KEY `idx_product_type_2_Categoria` (`Categoria`),
-  KEY `idx_product_type_2_SottoCategoria` (`SottoCategoria`),
-  FULLTEXT KEY `idx_product_type_2_Designer` (`Designer`),
-  FULLTEXT KEY `idx_product_type_1_Sesso` (`Sesso`)) 
-  ENGINE=MyISAM DEFAULT CHARSET=utf8;";
-$mysqli->query($create);
-
-# Elimina tutti i dati nella tabella jos_vm_manufacturer
-$truncate = "TRUNCATE TABLE jos_vm_manufacturer";
-$mysqli->query($truncate);
-
-# Elimina tutti i dati nella tabella jos_vm_category
-$truncate = "TRUNCATE TABLE jos_vm_category";
-$mysqli->query($truncate);
-
-# Elimina tutti i dati nella tabella jos_vm_manufacturer_xref
-$truncate = "TRUNCATE TABLE jos_vm_category_xref";
-$mysqli->query($truncate);
-
-# Elimina tutti i dati nella tabella jos_vm_product
-$truncate = "TRUNCATE TABLE jos_vm_product";
-$mysqli->query($truncate);
-
-# Elimina tutti i dati nella tabella jos_vm_product_attribute
-$truncate = "TRUNCATE TABLE jos_vm_product_attribute";
-$mysqli->query($truncate);
-
-# Elimina tutti i dati nella tabella jos_vm_product_attribute_sku
-$truncate = "TRUNCATE TABLE jos_vm_product_attribute_sku";
-$mysqli->query($truncate);
-
-# Elimina tutti i dati nella tabella jos_vm_product_category_xref
-$truncate = "TRUNCATE TABLE jos_vm_product_category_xref";
-$mysqli->query($truncate);
-
-# Elimina tutti i dati nella tabella jos_vm_product_mf_xref
-$truncate = "TRUNCATE TABLE jos_vm_product_mf_xref";
-$mysqli->query($truncate);
-
-# Elimina tutti i dati nella tabella jos_vm_product_price
-$truncate = "TRUNCATE TABLE jos_vm_product_price";
-$mysqli->query($truncate);
-
-# Elimina tutti i dati nella tabella jos_vm_product_product_type_xref
-$truncate = "TRUNCATE TABLE jos_vm_product_product_type_xref";
-$mysqli->query($truncate);
-
-# Elimina tutti i dati nella tabella jos_vm_product_type_1
-$truncate = "TRUNCATE TABLE jos_vm_product_type_1";
-$mysqli->query($truncate);
-
-# Elimina tutti i dati nella tabella jos_vm_product_files
-$truncate = "TRUNCATE TABLE jos_vm_product_files";
-$mysqli->query($truncate);
-
-# Elimina tutti i dati nella tabella jos_vm_product_discount
-$truncate = "TRUNCATE TABLE jos_vm_product_discount";
-$mysqli->query($truncate);
-
-# Elimina tutti i dati nella tabella jos_vm_product_type_parameter
-$truncate = "TRUNCATE TABLE jos_vm_product_type_parameter";
-$mysqli->query($truncate);
-
+## TABELLE DA SVUOTARE ##
+$drop_table = array(
+		'jos_vm_manufacturer',
+		'jos_vm_category',
+		'jos_vm_category_xref',
+		'jos_vm_product',
+		'jos_vm_product_category_xref',
+		'jos_vm_product_mf_xref',
+		'jos_vm_product_price',
+		'jos_vm_product_discount'
+	);
+foreach($drop_table as $val)
+{
+	$mysqli->query("TRUNCATE TABLE ".$val."");
+}
 # Crea l'oggetto Simplexml per leggere il file articoli.xml
 if (file_exists('articoli.xml'))
 {
@@ -104,12 +46,12 @@ if (file_exists('articoli.xml'))
 		# prodotti presenti in danea
 		if(!empty($product->AvailableQty))
 		{
-			$saldi = (1 - ((string)$product->GrossPrice2 / (string)$product->GrossPrice1))*100;
+			//$saldi = (1 - ((string)$product->GrossPrice2 / (string)$product->GrossPrice1))*100;
+			//$saldi = (string)$product->GrossPrice1 - (string)$product->GrossPrice3;
 			$prodotti[$i] = array(
 				"Codice" => (string)$product->Code,
 				"Nome" => (string)$product->Description,
-				"Desc" => "<b>".(string)$product->ProducerName."</b><br/>".(string)$product->Subcategory,
-				"Html" => (string)$product->DescriptionHtml,
+				"Desc" => (string)$product->Notes,
 				"Categoria" => (string)$product->Category,
 				"SottoCategoria" => (string)$product->Subcategory,
 				"NetPrice" => (string)$product->NetPrice1,
@@ -118,30 +60,8 @@ if (file_exists('articoli.xml'))
 				"Quantita" => (string)$product->AvailableQty,
 				"Sesso" => (string)$product->CustomField1,
 				"Stagione" => (string)$product->CustomField3,
-				"Saldi" => number_format($saldi, 2, '.',''),
+				//"Saldi" => number_format($saldi, 2, '.',''),
 				"Immagine" => (string)$product->Code.".jpg");
-			foreach($xml->xpath("Products/Product[InternalID = '".(string)$product->InternalID."']/Variant") as $variant)
-			{
-				if(!empty($variant->AvailableQty)){
-				$col_img = str_replace(" ","_",strtolower((string)$variant->Color));
-				$prodotti[$i]['varianti'][] = array(
-					"Codice" => (string)$product->Code."/".(string)$variant->Size."/".(string)$variant->Color,
-					"Nome" => (string)$product->Description,
-					"Categoria" => (string)$product->Category,
-					"SottoCategoria" => (string)$product->Subcategory,
-					"NetPrice" => (string)$product->NetPrice1,
-					"GrossPrice" => (string)$product->GrossPrice1,
-					"Produttore" => (string)$product->ProducerName,
-					"Quantita" => (string)$variant->AvailableQty,
-					"Taglia" => (string)$variant->Size,
-					"Colore" => (string)$variant->Color,
-					"Sesso" => (string)$product->CustomField1,
-					"Immagine" => (string)$product->Code."_".$col_img."_f.jpg",
-					"Immagine_R" => (string)$product->Code."_".$col_img."_r.jpg",
-					"Stagione" => (string)$product->CustomField3);
-				$x++;
-				}
-			}
 			$x++;
 		}
 		$i = $x;
@@ -153,11 +73,6 @@ if (file_exists('articoli.xml'))
 	{
 		$prodotti_xref[$i] = $val['Codice'];
 		$i++;
-		foreach($val['varianti'] as $k => $v)
-		{
-			$prodotti_xref[$i] = $v['Codice'];
-			$i++;
-		}
 	}
 
 	# produttori presenti in danea elencati una sola volta
@@ -247,7 +162,7 @@ if (file_exists('articoli.xml'))
 	$stmt->close();
 	
 	# Crea l'array dei saldi contenuti in danea
-	foreach($prodotti as $key => $val)
+	/*foreach($prodotti as $key => $val)
 	{
 		$saldi_array[] = $val['Saldi'];
 	}
@@ -257,19 +172,18 @@ if (file_exists('articoli.xml'))
 	{
 		$new_saldi_array[$k+1] = $v;
 	}
-	
 	$stmt = $mysqli->prepare("INSERT INTO jos_vm_product_discount VALUES (?,?,?,?,?)");
 	$stmt->bind_param('iiiii', $discount_id, $amount, $is_percent, $start_date, $end_date);
 	foreach($new_saldi_array as $key => $val)
 	{
 		$discount_id = $key;
 		$amount = $val;
-		$is_percent = 1;
+		$is_percent = 0;
 		$start_date = 0;
 		$end_date = 0;
 		$stmt->execute();
 	}
-	$stmt->close();
+	$stmt->close();*/
 	
 	# prepara l'inserimento dei prodotti nella tabella jos_vm_product
 	$stmt = $mysqli->prepare("INSERT INTO jos_vm_product (vendor_id, product_parent_id, product_sku, product_s_desc, product_desc, product_thumb_image, product_full_image, product_publish, product_in_stock, product_available_date, product_availability, product_special, product_discount_id, cdate, mdate, product_name, product_tax_id, child_options, quantity_options, product_order_levels) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
@@ -281,7 +195,7 @@ if (file_exists('articoli.xml'))
 			$product_parent_id = 0;
 			$product_sku = $val['Codice'];
 			$product_s_desc = $val['Desc'];
-			$product_desc = $val['Html'];
+			$product_desc = $val['Desc'];
 			$path='';
 			if(!empty($val['Immagine']))
 			{
@@ -294,100 +208,31 @@ if (file_exists('articoli.xml'))
 			$product_available_date = time();
 			$product_availability = '3 giorni lavorativi';
 			$product_special = 'N';
-			foreach($new_saldi_array as $k => $v)
+			/*foreach($new_saldi_array as $k => $v)
 			{
-				if($v == $val['Saldi'])
+				if($v == $val['Saldi'] )
 				{
-					$discount = $k;
+					if($v != "0.00")
+					{
+						$discount = $k;
+					}else{
+						$discount = '';
+					}
 				}
 			}
-			$product_discount_id = $discount;
+			$product_discount_id = $discount;*/
 			$cdate = time();
 			$mdate = time();
 			$product_name = $val['Nome'];
 			$product_tax_id = 3;
 			$child_options = 'N,N,N,N,N,N,20%,10%,';
-			$quantity_options = 'none,0,0,1';
+			$quantity_options = 'hide,0,0,1';
 			$product_order_levels = '0,0';
 			$stmt->execute();
-			foreach($val['varianti'] as $v)
-			{
-				$vendor_id = 1;
-				$product_parent_id = $key;
-				$product_sku = $v['Codice'];
-				$path='';
-				if(!empty($v['Immagine']))
-				{
-					$path = 'resized/';
-				}
-				$thumb_image = $path.$v['Immagine'];
-				$full_image = $v['Immagine'];
-				$product_publish = 'Y';
-				$product_in_stock = $v['Quantita'];
-				$product_available_date = time();
-				$product_availability = '3 giorni lavorativi';
-				$product_special = 'N';
-				$product_discount_id = $discount;
-				$cdate = time();
-				$mdate = time();
-				$product_name = $v['Nome'];
-				$product_tax_id = 3;
-				$child_options = 'N,N,N,N,N,N,20%,10%,';
-				$quantity_options = 'none,0,0,1';
-				$product_order_levels = '0,0';
-				$stmt->execute();
-			}
-		
 	}
 	$stmt->close();
 	
-	# prepara l'inserimento degli attributi nella tabella jos_vm_product_attribute 
 	
-	$stmt = $mysqli->prepare("INSERT INTO jos_vm_product_attribute (product_id, attribute_name, attribute_value) VALUES(?,?,?)");
-	$stmt->bind_param('sss',$product_id, $attribute_name, $attribute_value);
-	foreach($prodotti as $key => $val)
-	{
-		foreach($val['varianti'] as $v)
-		{
-			foreach($prodotti_xref as $kp => $vp)
-			{
-				if($v['Codice'] == $vp)
-				{
-					$product_id = $kp;
-					$attribute_name = 'Taglia';
-					$attribute_value = $v['Taglia'];
-					$stmt->execute();
-					$product_id = $kp;
-					$attribute_name = 'Colore';
-					$attribute_value = $v['Colore'];
-					$stmt->execute();
-				}
-			}
-		}
-	}
-	$stmt->close();
-	
-	# prepara l'insermento degli attributi nella tabella jos_vm_product_attribute_sku
-	$stmt = $mysqli->prepare("INSERT INTO jos_vm_product_attribute_sku (product_id, attribute_name, attribute_list) VALUES (?,?,?)");
-	$stmt->bind_param('iss', $product_id, $attribute_name, $attribute_list);
-	foreach($prodotti as $key=>$val)
-	{
-		foreach($prodotti_xref as $k => $v)
-		{
-			if($val['Codice'] == $v)
-			{
-				$product_id = $k;
-				$attribute_name = 'Colore';
-				$attribute_list = 0;
-				$stmt->execute();
-				$product_id = $k;
-				$attribute_name = 'Taglia';
-				$attribute_list = 0;
-				$stmt->execute();
-			}
-		}
-	}
-	$stmt->close();
 	
 	# Crea l'array cat_subcat_xref che corrisponde alla tabella jos_vm_product_category_xref
 	$i = 1;
@@ -451,15 +296,6 @@ if (file_exists('articoli.xml'))
 					$manufacturer_id = $kp;
 					$stmt->execute();
 				}
-				foreach($val['varianti'] as $v)
-				{
-					if($val['Produttore'] == $vp && $v['Codice'] == $vpr)
-					{
-						$product_id = $kpr;
-						$manufacturer_id = $kp;
-						$stmt->execute();
-					}
-				}
 			}
 		}
 	}
@@ -482,154 +318,9 @@ if (file_exists('articoli.xml'))
 				$shopper_group_id = 5;
 				$stmt->execute();
 			}
-			foreach($val['varianti'] as $kp => $vp)
-			{
-				if($vp['Codice'] == $v)
-				{
-					$product_id = $k;
-					$product_price = $val['NetPrice'];
-					$product_currency = 'EUR';
-					$cdate = time();
-					$mdate = time();
-					$shopper_group_id = 5;
-					$stmt->execute();
-				}
-			}
 		}
 	}
 	$stmt->close();
-	
-	# Tabella jos_vm_product_type
-	
-	// code here
-	
-	
-	# Tabella jos_vm_product_type_parameter
-	# Prepara l'array
-	$cat_subcat_param = implode(';', $cat_subcat_xref);
-	$designer_param = implode(';', $produttori);
-	$parameter = array(
-		'Sesso' => 'Uomo;Donna',
-		'Stagione' => "Autunno/Inverno;Primavera/Estate;Anno Intero",
-		'Categoria' => $cat_subcat_param, 
-		'SottoCategoria' => $cat_subcat_param, 
-		'Designer' => $designer_param);
-		
-	$stmt = $mysqli->prepare("INSERT INTO jos_vm_product_type_parameter (product_type_id, parameter_name, parameter_label, parameter_list_order, parameter_type, parameter_values, parameter_multiselect) VALUES (?,?,?,?,?,?,?)");
-	$stmt->bind_param('ississs', $product_type_id, $parameter_name, $parameter_label, $parameter_list_order, $parameter_type, $parameter_values, $parameter_multiselect);
-	$i = 1;
-	foreach($parameter as $key => $val)
-	{
-		$product_type_id = 1;
-		$parameter_name = $key;
-		$parameter_label = $key;
-		$parameter_list_order = $i;
-		$parameter_type = 'V';
-		$parameter_values = $val;
-		$parameter_multiselect = 'N';
-		$stmt->execute();
-		$i++;
-	}
-	$stmt->close();
-	
-	# Tabella jos_vm_product_type_1
-	$stmt = $mysqli->prepare("INSERT INTO jos_vm_product_type_1 VALUES(?,?,?,?,?,?)");
-	$stmt->bind_param('isssss', $product_id, $sesso, $stagione, $categoria, $sottocategoria, $designer);
-	foreach($prodotti as $key => $val)
-	{
-		foreach($prodotti_xref as $k => $v)
-		{
-			if($val['Codice'] == $v)
-			{
-				$product_id = $k;
-				$sesso = $val['Sesso'];
-				switch($val['Stagione'])
-				{
-					case "A/I":
-						$stagione = "Autunno/Inverno";
-					break;
-					case "P/E":
-						$stagione = "Primavera/Estate";
-					break;
-					default:
-						$stagione = "Anno Intero";
-					break;
-				}
-				$categoria = $val['Categoria'];
-				$sottocategoria = $val['SottoCategoria'];
-				$designer = $val['Produttore'];
-				$stmt->execute(); 
-			}
-		}
-	}
-	
-	$stmt->close();
-	
-	# Tabella jos_vm_product_product_type_xref
-	$stmt = $mysqli->prepare("INSERT INTO jos_vm_product_product_type_xref VALUES(?,?)");
-	$stmt->bind_param('ii', $product_id, $product_type_id);
-	foreach($prodotti as $key => $val)
-	{
-		foreach($prodotti_xref as $k => $v)
-		{
-			if($val['Codice'] == $v)
-			{
-				$product_id = $k;
-				$product_type_id = 1;
-				$stmt->execute(); 
-			}
-		}
-	}
-	$stmt->close();
-	
-	# Tabella jos_vm_product_product_type_xref
-	$stmt = $mysqli->prepare("INSERT INTO jos_vm_product_product_type_xref VALUES(?,?)");
-	$stmt->bind_param('ii', $product_id, $product_type_id);
-	foreach($prodotti as $key => $val)
-	{
-		foreach($prodotti_xref as $k => $v)
-		{
-			if($val['Codice'] == $v)
-			{
-				$product_id = $k;
-				$product_type_id = 2;
-				$stmt->execute(); 
-			}
-		}
-	}
-	$stmt->close();
-	
-	# Tabella jos_vm_product_files
-	$stmt = $mysqli->prepare("INSERT INTO jos_vm_product_files (file_product_id, file_name, file_title, file_extension, file_mimetype, file_url, file_published, file_is_image, file_image_height, file_image_width, file_image_thumb_height, file_image_thumb_width) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
-	$stmt->bind_param('isssssiiiiii', $file_product_id, $file_name, $file_title, $file_extension, $file_mimetype, $file_url, $file_published, $file_is_image, $file_image_height, $file_image_width, $file_image_thumb_height, $file_image_thumb_width);
-	foreach($prodotti as $key => $val)
-	{
-		foreach($val['varianti'] as $k => $p)
-		{
-			foreach($prodotti_xref as $kx => $vx)
-			{
-				if($p['Codice'] == $vx)
-				{
-					$file_product_id = $kx;
-					$file_name = "/components/com_virtuemart/shop_image/product/".$p['Immagine_R'];
-					$file_title = $p['Nome'];
-					$file_extension = 'jpg';
-					$file_mimetype = 'image/jpeg';
-					$file_url = FILE_IMAGE_R_URL."/components/com_virtuemart/shop_image/product/".$p['Immagine_R'];
-					$file_published = 1;
-					$file_is_image = 1;
-					$file_image_height = 2000;
-					$file_image_width = 1339;
-					$file_image_thumb_height = 50;
-					$file_image_thumb_width = 33;
-					$stmt->execute();
-				}
-			}
-		}
-	}
-	$stmt->close();
-	
-	
 }
 else
 {
