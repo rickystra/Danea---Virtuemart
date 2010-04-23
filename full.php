@@ -16,7 +16,7 @@ $mysqli = new mysqli('localhost', 'root', 'antico', 'virtuemart'); //host, usern
 
 ### Fine variabili - non modificare da qui in poi ###
 ## TABELLE DA SVUOTARE ##
-$drop_table = array(
+$trunc_table = array(
 		'jos_vm_manufacturer',
 		'jos_vm_category',
 		'jos_vm_category_xref',
@@ -26,7 +26,7 @@ $drop_table = array(
 		'jos_vm_product_price',
 		'jos_vm_product_discount'
 	);
-foreach($drop_table as $val)
+foreach($trunc_table as $val)
 {
 	$mysqli->query("TRUNCATE TABLE ".$val."");
 }
